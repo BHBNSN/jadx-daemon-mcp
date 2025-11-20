@@ -251,6 +251,61 @@ def get_class_fields(
 
 
 @mcp.tool(
+    name="get_method_callers",
+    description="Get the caller list of the given java method."
+)
+def get_method_callers(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    className: Annotated[str, "The class name needs to be a FQN, e.g. `com.example.abc.SomeClass`."],
+    methodName: Annotated[str, "The method name needs to be a FQN, e.g. `void testMethod(java.lang.String, int)`."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+        "methodName": methodName,
+    }
+    response = requests.get(url + "/get_method_callers", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
+    name="get_class_callers",
+    description="Get the caller list of the given java class."
+)
+def get_class_callers(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    className: Annotated[str, "The class name needs to be a FQN, e.g. `com.example.abc.SomeClass`."], 
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+    }
+    response = requests.get(url + "/get_class_callers", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
+    name="get_method_overrides",
+    description="Get the override list of the given java method."
+)
+def get_method_overrides(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    className: Annotated[str, "The class name needs to be a FQN, e.g. `com.example.abc.SomeClass`."], 
+    methodName: Annotated[str, "The method name needs to be a FQN, e.g. `void testMethod(java.lang.String, int)`."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+        "methodName": methodName,
+    }
+    response = requests.get(url + "/get_method_overrides", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
     name="update_max_instance_count",
     description="Update the max parallel jadx decomplier instance count, if you set a large value, this will use lots of memory and may get a OOM error."
 )

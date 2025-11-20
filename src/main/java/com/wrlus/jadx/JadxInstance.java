@@ -1,11 +1,6 @@
 package com.wrlus.jadx;
 
-import jadx.api.JadxArgs;
-import jadx.api.JadxDecompiler;
-import jadx.api.JavaClass;
-import jadx.api.JavaField;
-import jadx.api.JavaMethod;
-import jadx.api.ResourceFile;
+import jadx.api.*;
 import jadx.core.dex.instructions.args.ArgType;
 import jadx.core.utils.Utils;
 import jadx.core.utils.android.AndroidManifestParser;
@@ -193,6 +188,64 @@ public class JadxInstance {
 		}
 		return null;
 	}
+
+    public List<String> getMethodCallers(String className, String methodName) {
+        if (!isLoaded()) return null;
+
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            if (cls.getFullName().equals(className)) {
+                for (JavaMethod mtd : cls.getMethods()) {
+                    String fullMethodName = getFullMethodName(mtd);
+                    if (fullMethodName.equals(methodName)) {
+                        List<JavaNode> usedNodes = mtd.getUseIn();
+                        List<String> callers = new ArrayList<>();
+                        for (JavaNode node : usedNodes) {
+                            callers.add(node.getFullName());
+                        }
+                        return callers;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<String> getClassCallers(String className) {
+        if (!isLoaded()) return null;
+
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            if (cls.getFullName().equals(className)) {
+                List<JavaNode> usedNodes = cls.getUseIn();
+                List<String> callers = new ArrayList<>();
+                for (JavaNode node : usedNodes) {
+                    callers.add(node.getFullName());
+                }
+                return callers;
+            }
+        }
+        return null;
+    }
+
+    public List<String> getMethodOverrides(String className, String methodName) {
+        if (!isLoaded()) return null;
+
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            if (cls.getFullName().equals(className)) {
+                for (JavaMethod mtd : cls.getMethods()) {
+                    String fullMethodName = getFullMethodName(mtd);
+                    if (fullMethodName.equals(methodName)) {
+                        List<JavaMethod> overrideRelatedMethods = mtd.getOverrideRelatedMethods();
+                        List<String> overrides = new ArrayList<>();
+                        for (JavaMethod relatedMethod : overrideRelatedMethods) {
+                            overrides.add(relatedMethod.getFullName());
+                        }
+                        return overrides;
+                    }
+                }
+            }
+        }
+        return null;
+    }
 
 	public boolean isLoaded() {
 		return decompiler != null;

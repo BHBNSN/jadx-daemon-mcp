@@ -71,10 +71,15 @@ public class McpServer {
 		app.get("/get_class_methods", this::handleGetClassMethods);
 		app.get("/get_class_fields", this::handleGetClassFields);
 
+        /* Callers and overrides API */
+        app.get("/get_method_callers", this::handleGetMethodCallers);
+        app.get("/get_class_callers", this::handleGetClassCallers);
+        app.get("/get_method_overrides", this::handleGetMethodOverrides);
+
 		/* Management API */
 		app.get("/update_max_instance_count", this::handleUpdateMaxInstanceCount);
 
-		logger.info("Jadx daemon MCP HTTP server started at http://" + host + ":" + port);
+        logger.info("Jadx daemon MCP HTTP server started at http://{}:{}", host, port);
 	}
 
 	public void handleHealth(Context ctx) {
@@ -352,6 +357,71 @@ public class McpServer {
 			ctx.status(500).json(response);
 		}
 	}
+
+    public void handleGetMethodCallers(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+        String methodName = ctx.queryParam("methodName");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> callers = instance.getMethodCallers(className, methodName);
+            if (callers != null) {
+                response.put("result", callers);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find caller for method `" + methodName + "` in class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleGetClassCallers(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> callers = instance.getClassCallers(className);
+            if (callers != null) {
+                response.put("result", callers);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find caller for class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleGetMethodOverrides(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+        String methodName = ctx.queryParam("methodName");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> overrides = instance.getMethodOverrides(className, methodName);
+            if (overrides != null) {
+                response.put("result", overrides);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find overrides for method `" + methodName + "` in class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
 
 	public void handleUpdateMaxInstanceCount(Context ctx) {
 		Map<String, Object> response = new HashMap<>();

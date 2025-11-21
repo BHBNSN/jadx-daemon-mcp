@@ -129,7 +129,12 @@ public class SignatureConverter {
         // 字段名
         String fieldName = matcher.group(2);
 
-        return String.format("%s.%s", className, fieldName);
+        // 字段类型名
+        String fieldTypeDescriptor = matcher.group(3);
+        String fieldType = toJavaClassSignature(fieldTypeDescriptor);
+
+
+        return String.format("%s.%s :%s", className, fieldName, fieldType);
     }
 
     private static String getReadableClassName(Type type) {

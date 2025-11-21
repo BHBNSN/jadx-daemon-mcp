@@ -74,6 +74,7 @@ public class McpServer {
         /* Callers and overrides API */
         app.get("/get_method_callers", this::handleGetMethodCallers);
         app.get("/get_class_callers", this::handleGetClassCallers);
+        app.get("/get_field_callers", this::handleGetFieldCallers);
         app.get("/get_method_overrides", this::handleGetMethodOverrides);
 
 		/* Management API */
@@ -411,6 +412,30 @@ public class McpServer {
                 ctx.json(response);
             } else {
                 response.put("error", "Cannot find caller for class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleGetFieldCallers(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String fieldName = ctx.queryParam("fieldName");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> callers = instance.getFieldCallers(
+                    SignatureConverter.extractJavaClassFQN(fieldName),
+                    SignatureConverter.toJavaFieldSignature(fieldName)
+            );
+            if (callers != null) {
+                response.put("result", callers);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find caller for field `" + fieldName + "`." );
                 ctx.status(404).json(response);
             }
         } else {

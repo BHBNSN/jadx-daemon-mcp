@@ -285,6 +285,23 @@ def get_class_callers(
 
 
 @mcp.tool(
+    name="get_field_callers",
+    description="Get the caller list of the given java class."
+)
+def get_field_callers(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    fieldName: Annotated[str, "The field name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;->field:Ljava/lang/String;`."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "fieldName": fieldName,
+    }
+    response = requests.get(url + "/get_field_callers", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
     name="get_method_overrides",
     description="Get the override list of the given java method."
 )

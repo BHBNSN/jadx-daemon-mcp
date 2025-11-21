@@ -2,7 +2,6 @@ package com.wrlus.jadx;
 
 import jadx.api.*;
 import jadx.core.dex.instructions.args.ArgType;
-import jadx.core.utils.Utils;
 import jadx.core.utils.android.AndroidManifestParser;
 import jadx.core.xmlgen.ResContainer;
 import org.slf4j.Logger;
@@ -225,6 +224,23 @@ public class JadxInstance {
         return null;
     }
 
+    public List<String> getFieldCallers(String className, String fieldName) {
+        if (!isLoaded()) return null;
+
+        JavaField field = findJavaField(className, fieldName);
+
+        if (field != null) {
+            List<JavaNode> usedNodes = field.getUseIn();
+            List<String> callers = new ArrayList<>();
+            for (JavaNode node : usedNodes) {
+                callers.add(node.toString());
+            }
+            return callers;
+        }
+
+        return null;
+    }
+
     public List<String> getMethodOverrides(String className, String methodName) {
         if (!isLoaded()) return null;
 
@@ -257,6 +273,18 @@ public class JadxInstance {
             for (JavaMethod mtd : cls.getMethods()) {
                 if (methodName.equals(mtd.toString())) {
                     return mtd;
+                }
+            }
+        }
+        return null;
+    }
+
+    private JavaField findJavaField(String className, String fieldName) {
+        JavaClass cls = findJavaClass(className);
+        if (cls != null) {
+            for (JavaField field : cls.getFields()) {
+                if (fieldName.equals(field.toString())) {
+                    return field;
                 }
             }
         }

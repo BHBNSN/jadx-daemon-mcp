@@ -8,6 +8,15 @@ from typing import Annotated
 
 mcp = FastMCP("jadx-daemon-mcp")
 
+INSTANCE_ID_ANNOTATED_STR = "An unique string type id to identify this jadx instance."
+FILEPATH_ANNOTATED_STR = "Full path of the file or a the directory."
+CLASS_ANNOTATED_STR = "The class name needs to be a Java FQN, e.g. `com.example.abc.AClass`."
+METHOD_ANNOTATED_STR = "The method name must be a Java signature with the parent class's Java FQN. " \
+"e.g. `com.example.abc.AClass.testMethod(java.lang.String, java.lang.String[], int):java.util.List<java.lang.String>`."
+FIELD_ANNOTATED_STR = "The field name must be a Java signature with the parent class's Java FQN, be careful the blank." \
+"e.g. `com.example.abc.AClass.testField :java.util.List<java.lang.String>`."
+MAX_INSTANCE_COUNT_ANNOTATED_STR = "The new max instance count must be at least 1."
+
 
 def get_jadx_url() -> str:
     host = os.getenv("JADX_DAEMON_MCP_HOST", "localhost")
@@ -30,8 +39,8 @@ def health() -> dict:
     description="Load a single apk or dex file to jadx decomplier."
 )
 def load(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
-    filePath: Annotated[str, "Full path of the single apk or dex file."]
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
+    filePath: Annotated[str, FILEPATH_ANNOTATED_STR]
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -47,8 +56,8 @@ def load(
     description="Load a dir which contains many apks and dexs to jadx decomplier."
 )
 def load_dir(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
-    dirPath: Annotated[str, "Full path of the single apk or dex file."]
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
+    dirPath: Annotated[str, FILEPATH_ANNOTATED_STR]
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -64,7 +73,7 @@ def load_dir(
     description="Unload jadx decomplier by instance id."
 )
 def unload(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -89,7 +98,7 @@ def unload_all() -> dict:
     description="Get the AndroidManifest.xml file content."
 )
 def get_manifest(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -104,7 +113,7 @@ def get_manifest(
     description="Get all exported activity names from the APK manifest."
 )
 def get_all_exported_activities(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -119,7 +128,7 @@ def get_all_exported_activities(
     description="Get all exported service names from the APK manifest."
 )
 def get_all_exported_services(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."], 
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -134,13 +143,12 @@ def get_all_exported_services(
     description="Get the decompiled code of the given java method."
 )
 def get_method_decompiled_code(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    methodName: Annotated[str, "The method signature must be the full JVM method signature, e.g. `Lcom/example/abc;->testMethod(Ljava/lang/String;I)V`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    methodName: Annotated[str, METHOD_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
         "instanceId": instanceId,
-        "className": className,
         "methodName": methodName,
     }
     response = requests.get(url + "/get_method_decompiled_code", params=query)
@@ -152,8 +160,8 @@ def get_method_decompiled_code(
     description="Get the decompiled code of the given java class."
 )
 def get_class_decompiled_code(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -169,8 +177,8 @@ def get_class_decompiled_code(
     description="Get the smali code of the given java class."
 )
 def get_class_smali_code(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -186,8 +194,8 @@ def get_class_smali_code(
     description="Get the superclass of the given java class."
 )
 def get_superclass(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -203,8 +211,8 @@ def get_superclass(
     description="Get the interfaces of the given java class."
 )
 def get_interfaces(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -220,8 +228,8 @@ def get_interfaces(
     description="Get the method list of the given java class."
 )
 def get_class_methods(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -237,8 +245,8 @@ def get_class_methods(
     description="Get the field list of the given java class."
 )
 def get_class_fields(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -254,13 +262,12 @@ def get_class_fields(
     description="Get the caller list of the given java method."
 )
 def get_method_callers(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    methodName: Annotated[str, "The method signature must be the full JVM method signature, e.g. `Lcom/example/abc;->testMethod(Ljava/lang/String;I)V`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    methodName: Annotated[str, METHOD_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
         "instanceId": instanceId,
-        "className": className,
         "methodName": methodName,
     }
     response = requests.get(url + "/get_method_callers", params=query)
@@ -272,8 +279,8 @@ def get_method_callers(
     description="Get the caller list of the given java class."
 )
 def get_class_callers(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -289,8 +296,8 @@ def get_class_callers(
     description="Get the caller list of the given java class."
 )
 def get_field_callers(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    fieldName: Annotated[str, "The field name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;->field:Ljava/lang/String;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    fieldName: Annotated[str, FIELD_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -306,8 +313,8 @@ def get_field_callers(
     description="Get the override list of the given java method."
 )
 def get_method_overrides(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    methodName: Annotated[str, "The method signature must be the full JVM method signature, e.g. `Lcom/example/abc;->testMethod(Ljava/lang/String;I)V`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    methodName: Annotated[str, METHOD_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -323,7 +330,7 @@ def get_method_overrides(
     description="Search for all AIDL classes."
 )
 def search_aidl_classes(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -338,8 +345,8 @@ def search_aidl_classes(
     description="Get the AIDL methods of the given aidl class."
 )
 def get_aidl_methods(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The AIDL class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -355,8 +362,8 @@ def get_aidl_methods(
     description="Get the implementation of the given aidl class."
 )
 def get_aidl_impl_class(
-    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
-    className: Annotated[str, "The AIDL class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    className: Annotated[str, CLASS_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {
@@ -372,7 +379,7 @@ def get_aidl_impl_class(
     description="Update the max parallel jadx decomplier instance count, if you set a large value, this will use lots of memory and may get a OOM error."
 )
 def update_max_instance_count(
-    count: Annotated[int, "The new max instance count must be at least 1."],
+    count: Annotated[int, MAX_INSTANCE_COUNT_ANNOTATED_STR],
 ) -> dict:
     url = get_jadx_url()
     query = {

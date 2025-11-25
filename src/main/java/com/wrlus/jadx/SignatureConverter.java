@@ -5,8 +5,7 @@ import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,23 +13,29 @@ import java.util.regex.Pattern;
 public class SignatureConverter {
     private static final Logger logger = LoggerFactory.getLogger(SignatureConverter.class);
 
-    private static final Pattern CLASS_DESCRIPTOR_PATTERN =
+    private static final Pattern JVM_TYPE_DESCRIPTOR_PATTERN =
             Pattern.compile("^(L[^;]+;)");
 
-    private static final Pattern METHOD_SIGNATURE_PATTERN =
+    private static final Pattern JVM_METHOD_SIGNATURE_PATTERN =
             Pattern.compile("(L[^;]+;)->([^(]+)(\\(([^)]*)\\)(.+))");
 
-    private static final Pattern FIELD_SIGNATURE_PATTERN =
+    private static final Pattern JVM_FIELD_SIGNATURE_PATTERN =
             Pattern.compile("(L[^;]+;)->([^:]+):(.+)");
 
+    private static final String ANONYMOUS_CLASS_JADX = ".AnonymousClass";
 
-    public static String extractJavaClassFQN(String jvmSignature) {
+    public static String extractJavaClassFQN(String signature) {
+        return isJVMSignature(signature) ? extractJavaClassFQNFromJvmSignature(signature) :
+                extractJavaClassFQNFromJavaSignature(signature);
+    }
+
+    private static String extractJavaClassFQNFromJvmSignature(String jvmSignature) {
         if (jvmSignature == null || jvmSignature.isEmpty()) {
             logger.error("Invalid JVM signature format: {}", jvmSignature);
             return null;
         }
 
-        Matcher matcher = CLASS_DESCRIPTOR_PATTERN.matcher(jvmSignature);
+        Matcher matcher = JVM_TYPE_DESCRIPTOR_PATTERN.matcher(jvmSignature);
 
         if (matcher.find()) {
             String classDescriptor = matcher.group(1);
@@ -39,6 +44,35 @@ public class SignatureConverter {
 
         logger.error("Invalid JVM signature format: {}", jvmSignature);
         return null;
+    }
+
+    private static String extractJavaClassFQNFromJavaSignature(String javaMemberSignature) {
+        if (javaMemberSignature == null || javaMemberSignature.isEmpty()) {
+            return null;
+        }
+
+        int leftParenIndex = javaMemberSignature.indexOf('(');
+
+        if (leftParenIndex != -1) {
+            String partBeforeParen = javaMemberSignature.substring(0, leftParenIndex);
+
+            int lastDotIndex = partBeforeParen.lastIndexOf('.');
+
+            if (lastDotIndex <= 0) {
+                return null;
+            }
+
+            return partBeforeParen.substring(0, lastDotIndex);
+
+        } else {
+            int lastDotIndex = javaMemberSignature.lastIndexOf('.');
+
+            if (lastDotIndex <= 0) {
+                return null;
+            }
+
+            return javaMemberSignature.substring(0, lastDotIndex);
+        }
     }
 
     /**
@@ -66,7 +100,7 @@ public class SignatureConverter {
      * @return Java 方法签名字符串，如果格式无效则返回 null。
      */
     public static String toJavaMethodSignature(String jvmMethodSignature) {
-        Matcher matcher = METHOD_SIGNATURE_PATTERN.matcher(jvmMethodSignature);
+        Matcher matcher = JVM_METHOD_SIGNATURE_PATTERN.matcher(jvmMethodSignature);
 
         if (!matcher.matches()) {
             logger.error("Invalid JVM method signature format: {}", jvmMethodSignature);
@@ -111,7 +145,7 @@ public class SignatureConverter {
      * @return Java 字段简洁签名字符串，如果格式无效则返回 null。
      */
     public static String toJavaFieldSignature(String jvmFieldSignature) {
-        Matcher matcher = FIELD_SIGNATURE_PATTERN.matcher(jvmFieldSignature);
+        Matcher matcher = JVM_FIELD_SIGNATURE_PATTERN.matcher(jvmFieldSignature);
 
         if (!matcher.matches()) {
             System.err.println("Invalid JVM field signature format: " + jvmFieldSignature);
@@ -148,12 +182,45 @@ public class SignatureConverter {
             case Type.FLOAT -> "float";
             case Type.LONG -> "long";
             case Type.DOUBLE -> "double";
-            case Type.OBJECT -> type.getClassName();
+            case Type.OBJECT -> {
+                String className = type.getClassName();
+
+                int dollarIndex = className.lastIndexOf('$');
+                if (dollarIndex != -1 && dollarIndex < className.length() - 1) {
+                    String anonymousClassCount = className.substring(dollarIndex + 1);
+
+                    if (anonymousClassCount.matches("\\d+")) {
+                        String outerClassName = className.substring(0, dollarIndex);
+                        yield outerClassName + ANONYMOUS_CLASS_JADX + anonymousClassCount;
+                    }
+                }
+                yield className;
+            }
             case Type.ARRAY -> {
                 String baseType = getReadableClassName(type.getElementType());
                 yield baseType + "[]".repeat(Math.max(0, type.getDimensions()));
             }
             default -> "UNKNOWN_TYPE";
         };
+    }
+
+    public static boolean isJVMSignature(String input) {
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+
+        if (input.contains("/")) {
+            return true;
+        }
+
+        if (input.startsWith("L") && input.endsWith(";")) {
+            return true;
+        }
+
+        if (input.startsWith("[")) {
+            return true;
+        }
+
+        return false;
     }
 }

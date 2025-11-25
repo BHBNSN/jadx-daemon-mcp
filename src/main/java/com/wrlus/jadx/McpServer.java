@@ -57,8 +57,6 @@ public class McpServer {
 
 		/* AndroidManifest API */
 		app.get("/get_manifest", this::handleGetManifest);
-		app.get("/get_all_exported_activities", this::handleGetAllExportedActivities);
-		app.get("/get_all_exported_services", this::handleGetAllExportedServices);
 
 		/* Code browser API */
 		app.get("/get_method_decompiled_code", this::handleGetMethodDecompiledCode);
@@ -190,32 +188,6 @@ public class McpServer {
 		}
 	}
 
-	public void handleGetAllExportedActivities(Context ctx) {
-		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
-
-		JadxInstance instance = getJadx(instanceId);
-		if (instance != null) {
-			ctx.json(response);
-		} else {
-			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
-		}
-	}
-
-	public void handleGetAllExportedServices(Context ctx) {
-		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
-
-		JadxInstance instance = getJadx(instanceId);
-		if (instance != null) {
-			ctx.json(response);
-		} else {
-			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
-		}
-	}
-
 	public void handleGetMethodDecompiledCode(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
 		String instanceId = ctx.queryParam("instanceId");
@@ -223,9 +195,11 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(methodName);
+
 			String code = instance.getMethodDecompiledCode(
                     SignatureConverter.extractJavaClassFQN(methodName),
-                    SignatureConverter.toJavaMethodSignature(methodName)
+                    isJVMSignature ? SignatureConverter.toJavaMethodSignature(methodName) : methodName
             );
 			if (code != null) {
 				response.put("result", code);
@@ -247,8 +221,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
 			String code = instance.getClassDecompiledCode(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (code != null) {
 				response.put("result", code);
@@ -270,8 +246,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
-			String code = instance.getClassSmaliCode(
-                    SignatureConverter.toJavaClassSignature(className)
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
+            String code = instance.getClassSmaliCode(
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (code != null) {
 				response.put("result", code);
@@ -293,8 +271,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
 			String superClass = instance.getSuperClass(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (superClass != null) {
 				response.put("result", superClass);
@@ -316,8 +296,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
 			List<String> interfaceNames = instance.getInterfaces(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (interfaceNames != null) {
 				response.put("result", interfaceNames);
@@ -339,8 +321,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
 			List<String> methodNames = instance.getClassMethods(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (methodNames != null) {
 				response.put("result", methodNames);
@@ -362,8 +346,10 @@ public class McpServer {
 
 		JadxInstance instance = getJadx(instanceId);
 		if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
 			List<String> fieldNames = instance.getClassFields(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
 			if (fieldNames != null) {
 				response.put("result", fieldNames);
@@ -385,9 +371,12 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(methodName);
+
             List<String> callers = instance.getMethodCallers(
                     SignatureConverter.extractJavaClassFQN(methodName),
-                    SignatureConverter.toJavaMethodSignature(methodName)
+                    isJVMSignature ? SignatureConverter.toJavaMethodSignature(methodName) :
+                            methodName
             );
             if (callers != null) {
                 response.put("result", callers);
@@ -409,8 +398,10 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
             List<String> callers = instance.getClassCallers(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
             if (callers != null) {
                 response.put("result", callers);
@@ -432,9 +423,11 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(fieldName);
+
             List<String> callers = instance.getFieldCallers(
                     SignatureConverter.extractJavaClassFQN(fieldName),
-                    SignatureConverter.toJavaFieldSignature(fieldName)
+                    isJVMSignature ? SignatureConverter.toJavaFieldSignature(fieldName) : fieldName
             );
             if (callers != null) {
                 response.put("result", callers);
@@ -456,9 +449,11 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(methodName);
+
             List<String> overrides = instance.getMethodOverrides(
                     SignatureConverter.extractJavaClassFQN(methodName),
-                    SignatureConverter.toJavaMethodSignature(methodName)
+                    isJVMSignature ? SignatureConverter.toJavaMethodSignature(methodName) : methodName
             );
             if (overrides != null) {
                 response.put("result", overrides);
@@ -500,8 +495,10 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
             List<String> aidlMethods = instance.getAidlMethods(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
             if (aidlMethods != null) {
                 response.put("result", aidlMethods);
@@ -523,8 +520,10 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
+
             String aidlImplClass = instance.getAidlImplClass(
-                    SignatureConverter.toJavaClassSignature(className)
+                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
             );
             if (aidlImplClass != null) {
                 response.put("result", aidlImplClass);

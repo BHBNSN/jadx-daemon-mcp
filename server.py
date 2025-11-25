@@ -312,10 +312,58 @@ def get_method_overrides(
     url = get_jadx_url()
     query = {
         "instanceId": instanceId,
-        "className": className,
         "methodName": methodName,
     }
     response = requests.get(url + "/get_method_overrides", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
+    name="search_aidl_classes",
+    description="Search for all AIDL classes."
+)
+def search_aidl_classes(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+    }
+    response = requests.get(url + "/search_aidl_classes", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
+    name="get_aidl_methods",
+    description="Get the AIDL methods of the given aidl class."
+)
+def get_aidl_methods(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    className: Annotated[str, "The AIDL class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+    }
+    response = requests.get(url + "/get_aidl_methods", params=query)
+    return json.loads(response.text)
+
+
+@mcp.tool(
+    name="get_aidl_impl_class",
+    description="Get the implementation of the given aidl class."
+)
+def get_aidl_impl_class(
+    instanceId: Annotated[str, "An unique string type id to identify this jadx instance."],
+    className: Annotated[str, "The AIDL class name needs to be a JVM class descriptor, e.g. `Lcom/example/abc/SomeClass;`."],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+    }
+    response = requests.get(url + "/get_aidl_impl_class", params=query)
     return json.loads(response.text)
 
 

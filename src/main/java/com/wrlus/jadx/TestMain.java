@@ -5,14 +5,14 @@ import java.util.List;
 public class TestMain {
 	public static void main(String[] args) {
 		JadxInstance instance = new JadxInstance();
-		instance.load("/home/xiaolu/Reverse/Android/China/应用宝/应用宝.apk");
+		instance.loadDir("/home/xiaolu/Firmware/Android/Google/shiba_16_BP3A.251105.015/packages/android/");
 
-        String jvmSignature = "Lcom/tencent/assistant/activity/BaseActivity;->activityExposureReport()V";
+        List<String> aidlClasses = instance.searchAidlClasses();
+        for (String aidlClass : aidlClasses) {
+            String aidlImplClass = instance.getAidlImplClass(aidlClass);
+            List<String> aidlMethods = instance.getAidlMethods(aidlClass);
 
-		List<String> methods = instance.getMethodCallers(
-                SignatureConverter.extractJavaClassFQN(jvmSignature),
-                SignatureConverter.toJavaMethodSignature(jvmSignature)
-        );
-		System.out.println(methods);
+            System.out.println(aidlClass + "\t" + aidlMethods.size() + "\t" + aidlImplClass);
+        }
 	}
 }

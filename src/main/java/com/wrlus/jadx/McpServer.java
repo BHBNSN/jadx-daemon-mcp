@@ -77,6 +77,11 @@ public class McpServer {
         app.get("/get_field_callers", this::handleGetFieldCallers);
         app.get("/get_method_overrides", this::handleGetMethodOverrides);
 
+        /* AIDL API */
+        app.get("/search_aidl_classes", this::handleSearchAidlClasses);
+        app.get("/get_aidl_methods", this::handleGetAidlMethods);
+        app.get("/get_aidl_impl_class", this::handleGetAidlImplClass);
+
 		/* Management API */
 		app.get("/update_max_instance_count", this::handleUpdateMaxInstanceCount);
 
@@ -468,7 +473,74 @@ public class McpServer {
         }
     }
 
-	public void handleUpdateMaxInstanceCount(Context ctx) {
+    public void handleSearchAidlClasses(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> aidlClasses = instance.searchAidlClasses();
+            if (aidlClasses != null) {
+                response.put("result", aidlClasses);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find AIDL class." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleGetAidlMethods(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> aidlMethods = instance.getAidlMethods(
+                    SignatureConverter.toJavaClassSignature(className)
+            );
+            if (aidlMethods != null) {
+                response.put("result", aidlMethods);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find AIDL method in class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleGetAidlImplClass(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            String aidlImplClass = instance.getAidlImplClass(
+                    SignatureConverter.toJavaClassSignature(className)
+            );
+            if (aidlImplClass != null) {
+                response.put("result", aidlImplClass);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find AIDL impl of class `" + className +
+                        "`, may be a native AIDL or not in current binaries." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleUpdateMaxInstanceCount(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
 		maxInstanceCount = ctx.queryParamAsClass("count", Integer.class)
 				.check(it -> it == null || it > 0, "Count must be positive")

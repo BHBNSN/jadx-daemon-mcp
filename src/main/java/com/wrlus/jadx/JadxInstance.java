@@ -1,5 +1,7 @@
 package com.wrlus.jadx;
 
+import com.wrlus.jadx.aidl.AidlClass;
+import com.wrlus.jadx.aidl.ClassSearch;
 import jadx.api.*;
 import jadx.core.dex.instructions.args.ArgType;
 import jadx.core.utils.android.AndroidManifestParser;
@@ -8,12 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class JadxInstance {
 	private static final Logger logger = LoggerFactory.getLogger(JadxInstance.class);
 	private JadxDecompiler decompiler;
+    private final Map<String, AidlClass> aidlCacheMap = new ConcurrentHashMap<>();
 
 	public void load(String path) {
 		if (isLoaded()) close();
@@ -85,11 +89,7 @@ public class JadxInstance {
 
         JavaMethod method = findJavaMethod(className, methodName);
 
-        if (method != null) {
-            return method.getCodeStr();
-        }
-
-		return null;
+		return method != null ? method.getCodeStr() : null;
 	}
 
 	public String getClassDecompiledCode(String className) {
@@ -97,11 +97,7 @@ public class JadxInstance {
 
         JavaClass cls = findJavaClass(className);
 
-        if (cls != null) {
-            return cls.getCode();
-        }
-
-		return null;
+		return cls != null ? cls.getCode() : null;
 	}
 
 	public String getClassSmaliCode(String className) {
@@ -109,11 +105,7 @@ public class JadxInstance {
 
         JavaClass cls = findJavaClass(className);
 
-        if (cls != null) {
-            return cls.getSmali();
-        }
-
-		return null;
+		return cls != null ? cls.getSmali() : null;
 	}
 
 	public String getSuperClass(String className) {
@@ -123,11 +115,7 @@ public class JadxInstance {
 
         if (cls != null) {
             ArgType superClassType = cls.getClassNode().getSuperClass();
-            if (superClassType != null) {
-                return superClassType.toString();
-            } else {
-                return Object.class.getCanonicalName();
-            }
+            return superClassType != null ? superClassType.toString() : Object.class.getCanonicalName();
         }
 
 		return null;
@@ -139,14 +127,11 @@ public class JadxInstance {
         JavaClass cls = findJavaClass(className);
 
         if (cls != null) {
-            List<ArgType> interfaces = cls.getClassNode().getInterfaces();
-            List<String> interfaceNames = new ArrayList<>();
-            if (interfaces != null && !interfaces.isEmpty()) {
-                for (ArgType interfaceType : interfaces) {
-                    interfaceNames.add(interfaceType.toString());
-                }
-            }
-            return interfaceNames;
+            return Optional.ofNullable(cls.getClassNode().getInterfaces())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(ArgType::toString)
+                    .toList();
         }
 
 		return null;
@@ -158,14 +143,11 @@ public class JadxInstance {
         JavaClass cls = findJavaClass(className);
 
         if (cls != null) {
-            List<JavaMethod> methods = cls.getMethods();
-            List<String> methodNames = new ArrayList<>();
-            if (methods != null && !methods.isEmpty()) {
-                for (JavaMethod mtd : methods) {
-                    methodNames.add(mtd.toString());
-                }
-            }
-            return methodNames;
+            return Optional.ofNullable(cls.getMethods())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaMethod::toString)
+                    .toList();
         }
 
 		return null;
@@ -177,14 +159,11 @@ public class JadxInstance {
         JavaClass cls = findJavaClass(className);
 
         if (cls != null) {
-            List<JavaField> fields = cls.getFields();
-            List<String> fieldNames = new ArrayList<>();
-            if (fields != null && !fields.isEmpty()) {
-                for (JavaField field : fields) {
-                    fieldNames.add(field.toString());
-                }
-            }
-            return fieldNames;
+            return Optional.ofNullable(cls.getFields())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaField::toString)
+                    .toList();
         }
 
 		return null;
@@ -196,12 +175,11 @@ public class JadxInstance {
         JavaMethod method = findJavaMethod(className, methodName);
 
         if (method != null) {
-            List<JavaNode> usedNodes = method.getUseIn();
-            List<String> callers = new ArrayList<>();
-            for (JavaNode node : usedNodes) {
-                callers.add(node.toString());
-            }
-            return callers;
+            return Optional.ofNullable(method.getUseIn())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaNode::toString)
+                    .collect(Collectors.toList());
         }
 
         return null;
@@ -213,12 +191,11 @@ public class JadxInstance {
         JavaClass cls = findJavaClass(className);
 
         if (cls != null) {
-            List<JavaNode> usedNodes = cls.getUseIn();
-            List<String> callers = new ArrayList<>();
-            for (JavaNode node : usedNodes) {
-                callers.add(node.toString());
-            }
-            return callers;
+            return Optional.ofNullable(cls.getUseIn())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaNode::toString)
+                    .collect(Collectors.toList());
         }
 
         return null;
@@ -230,12 +207,11 @@ public class JadxInstance {
         JavaField field = findJavaField(className, fieldName);
 
         if (field != null) {
-            List<JavaNode> usedNodes = field.getUseIn();
-            List<String> callers = new ArrayList<>();
-            for (JavaNode node : usedNodes) {
-                callers.add(node.toString());
-            }
-            return callers;
+            return Optional.ofNullable(field.getUseIn())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaNode::toString)
+                    .collect(Collectors.toList());
         }
 
         return null;
@@ -248,14 +224,65 @@ public class JadxInstance {
 
         if (method != null) {
             List<JavaMethod> overrideRelatedMethods = method.getOverrideRelatedMethods();
-            List<String> overrides = new ArrayList<>();
-            for (JavaMethod relatedMethod : overrideRelatedMethods) {
-                overrides.add(relatedMethod.toString());
-            }
-            return overrides;
+
+            return Optional.ofNullable(overrideRelatedMethods)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(JavaMethod::toString)
+                    .collect(Collectors.toList());
         }
 
         return null;
+    }
+
+    public List<String> searchAidlClasses() {
+        if (!isLoaded()) return null;
+
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            AidlClass aidlClass = AidlClass.fromInterface(cls);
+            if (aidlClass != null) {
+                aidlCacheMap.put(aidlClass.interfaceClassName, aidlClass);
+            }
+        }
+        return aidlCacheMap.keySet().stream().toList();
+    }
+
+    private AidlClass findAidlClass(String aidlClassName) {
+        AidlClass cachedAidl = aidlCacheMap.get(aidlClassName);
+        if (cachedAidl != null) {
+            return cachedAidl;
+        }
+
+        AidlClass foundAidlClass = Optional.ofNullable(findJavaClass(aidlClassName))
+                .flatMap(javaClass -> Optional.ofNullable(AidlClass.fromInterface(javaClass)))
+                .orElse(null);
+
+        if (foundAidlClass != null) {
+            aidlCacheMap.put(aidlClassName, foundAidlClass);
+        }
+
+        return foundAidlClass;
+    }
+
+    public List<String> getAidlMethods(String aidlClassName) {
+        if (!isLoaded()) return null;
+
+        AidlClass aidlClass = findAidlClass(aidlClassName);
+
+        return aidlClass != null ? aidlClass.getAidlMethods() : null;
+    }
+
+    public String getAidlImplClass(String aidlClassName) {
+        if (!isLoaded()) return null;
+
+        ClassSearch classSearcher = new ClassSearch(decompiler.getClassesWithInners());
+
+        AidlClass aidlClass = findAidlClass(aidlClassName);
+
+        return Optional.ofNullable(aidlClass)
+                .flatMap(ac -> Optional.ofNullable(ac.findImpl(classSearcher, false))) // 使用了外部依赖
+                .map(JavaClass::getFullName)
+                .orElse(null);
     }
 
     private JavaClass findJavaClass(String className) {

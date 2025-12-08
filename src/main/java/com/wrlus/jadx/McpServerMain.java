@@ -13,6 +13,10 @@ public class McpServerMain {
 		if (portString != null) port = Integer.parseInt(portString);
 
 		McpServer server = new McpServer(host, port);
-		server.start();
+		try {
+            server.start();
+        } catch (Exception e) {
+            server.stop();
+        }
 	}
 }

@@ -17,12 +17,17 @@ import java.util.stream.Collectors;
 public class JadxInstance {
 	private static final Logger logger = LoggerFactory.getLogger(JadxInstance.class);
 	private JadxDecompiler decompiler;
+    private final String filePath;
     private final Map<String, AidlClass> aidlCacheMap = new ConcurrentHashMap<>();
 
-	public void load(String path) {
+    public JadxInstance(String path) {
+        this.filePath = path;
+    }
+
+	public void load() {
 		if (isLoaded()) close();
 
-		File file = new File(path);
+		File file = new File(filePath);
 		if (!file.exists()) {
 			logger.error("No such file: {}", file.getAbsolutePath());
 			return;
@@ -37,10 +42,10 @@ public class JadxInstance {
 		decompiler.load();
 	}
 
-	public void loadDir(String path) {
+	public void loadDir() {
 		if (isLoaded()) close();
 
-		File dir = new File(path);
+		File dir = new File(filePath);
 		if (!dir.exists()) {
 			logger.error("No such directory: {}", dir.getAbsolutePath());
 			return;
@@ -197,7 +202,6 @@ public class JadxInstance {
                     .map(JavaNode::toString)
                     .collect(Collectors.toList());
         }
-
         return null;
     }
 
@@ -321,6 +325,10 @@ public class JadxInstance {
 	public boolean isLoaded() {
 		return decompiler != null;
 	}
+
+    public String getFilePath() {
+        return filePath;
+    }
 
 	public void close() {
 		decompiler.close();

@@ -80,12 +80,10 @@ def health() -> dict:
     description="Load a single apk or dex file to jadx decomplier."
 )
 def load(
-    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
     filePath: Annotated[str, FILEPATH_ANNOTATED_STR]
 ) -> dict:
     url = get_jadx_url()
     query = {
-        "instanceId": instanceId,
         "filePath": filePath
     }
     response = requests.get(url + "/load", params=query)
@@ -97,17 +95,28 @@ def load(
     description="Load a dir which contains many apks and dexs to jadx decomplier."
 )
 def load_dir(
-    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR], 
     dirPath: Annotated[str, FILEPATH_ANNOTATED_STR]
 ) -> dict:
     url = get_jadx_url()
     query = {
-        "instanceId": instanceId,
         "dirPath": dirPath
     }
     response = requests.get(url + "/load_dir", params=query)
     return json.loads(response.text)
 
+@mcp.tool(
+    name="lookup_instance_id",
+    description="Lookup jadx decomplier instance id by a file path. If you forget your instance id please use this method."
+)
+def lookup_instance_id(
+    path: Annotated[str, FILEPATH_ANNOTATED_STR]
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "path": path
+    }
+    response = requests.get(url + "/lookup_instance_id", params=query)
+    return json.loads(response.text)
 
 @mcp.tool(
     name="unload",

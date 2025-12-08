@@ -13,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class McpServer {
 	private static final Logger logger = LoggerFactory.getLogger(McpServer.class);
@@ -30,7 +31,9 @@ public class McpServer {
 	}
 
 	public void start() {
-		Gson gson = new GsonBuilder().create();
+        stop();
+
+        Gson gson = new GsonBuilder().create();
 		JsonMapper gsonMapper = new JsonMapper() {
 			@NotNull
 			@Override
@@ -52,6 +55,7 @@ public class McpServer {
 		/* Android binary loader API */
 		app.get("/load", this::handleLoad);
 		app.get("/load_dir", this::handleLoadDir);
+        app.get("/lookup_instance_id", this::handleLookupInstanceId);
 		app.get("/unload", this::handleUnload);
 		app.get("/unload_all", this::handleUnloadAll);
 
@@ -86,6 +90,12 @@ public class McpServer {
         logger.info("Jadx daemon MCP HTTP server started at http://{}:{}", host, port);
 	}
 
+    public void stop() {
+        if (app != null) {
+            app.stop();
+        }
+    }
+
 	public void handleHealth(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("result", "http://" + host + ":" + port);
@@ -94,17 +104,20 @@ public class McpServer {
 
 	public void handleLoad(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
 		String filePath = ctx.queryParam("filePath");
 
-		if (getJadx(instanceId) != null) {
+        String instanceId = findJadxByPath(filePath);
+
+		if (instanceId != null) {
 			response.put("result", instanceId);
 			ctx.json(response);
 			return;
 		}
 		if (jadxInstanceMap.size() < maxInstanceCount) {
-			JadxInstance instance = new JadxInstance();
-			instance.load(filePath);
+            instanceId = UUID.randomUUID().toString();
+
+			JadxInstance instance = new JadxInstance(filePath);
+			instance.load();
 			jadxInstanceMap.put(instanceId, instance);
 
 			response.put("result", instanceId);
@@ -116,29 +129,47 @@ public class McpServer {
 		}
 	}
 
-	public void handleLoadDir(Context ctx) {
-		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
-		String dirPath = ctx.queryParam("dirPath");
+    public void handleLoadDir(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String dirPath = ctx.queryParam("dirPath");
 
-		if (getJadx(instanceId) != null) {
-			response.put("result", instanceId);
-			ctx.json(response);
-			return;
-		}
-		if (jadxInstanceMap.size() < maxInstanceCount) {
-			JadxInstance instance = new JadxInstance();
-			instance.loadDir(dirPath);
-			jadxInstanceMap.put(instanceId, instance);
+        String instanceId = findJadxByPath(dirPath);
 
-			response.put("result", instanceId);
-			ctx.json(response);
-		} else {
-			response.put("error", "Max instance count reached, please use unload one instance " +
-					"or use `update_max_instance_count` to update max instance count.");
-			ctx.status(500).json(response);
-		}
-	}
+        if (instanceId != null) {
+            response.put("result", instanceId);
+            ctx.json(response);
+            return;
+        }
+        if (jadxInstanceMap.size() < maxInstanceCount) {
+            instanceId = UUID.randomUUID().toString();
+
+            JadxInstance instance = new JadxInstance(dirPath);
+            instance.loadDir();
+            jadxInstanceMap.put(instanceId, instance);
+
+            response.put("result", instanceId);
+            ctx.json(response);
+        } else {
+            response.put("error", "Max instance count reached, please use unload one instance " +
+                    "or use `update_max_instance_count` to update max instance count.");
+            ctx.status(500).json(response);
+        }
+    }
+
+    public void handleLookupInstanceId(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String path = ctx.queryParam("path");
+
+        String instanceId = findJadxByPath(path);
+
+        if (instanceId != null) {
+            response.put("result", instanceId);
+            ctx.json(response);
+        } else {
+            response.put("error", "Cannot lookup instance by provided path: " + path);
+            ctx.status(404).json(response);
+        }
+    }
 
 	public void handleUnload(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
@@ -153,7 +184,7 @@ public class McpServer {
 			ctx.json(response);
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -184,7 +215,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -210,7 +241,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -235,7 +266,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -260,7 +291,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -285,7 +316,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -310,7 +341,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -335,7 +366,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -360,7 +391,7 @@ public class McpServer {
 			}
 		} else {
 			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(500).json(response);
+			ctx.status(404).json(response);
 		}
 	}
 
@@ -387,7 +418,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -412,7 +443,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -438,7 +469,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -464,7 +495,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -484,7 +515,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -509,7 +540,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -535,7 +566,7 @@ public class McpServer {
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-            ctx.status(500).json(response);
+            ctx.status(404).json(response);
         }
     }
 
@@ -550,4 +581,14 @@ public class McpServer {
 	private JadxInstance getJadx(String instanceId) {
 		return jadxInstanceMap.get(instanceId);
 	}
+
+    private String findJadxByPath(String path) {
+        for (String instanceId : jadxInstanceMap.keySet()) {
+            JadxInstance instance = jadxInstanceMap.get(instanceId);
+            if (path.equals(instance.getFilePath()) && instance.isLoaded()) {
+                return instanceId;
+            }
+        }
+        return null;
+    }
 }

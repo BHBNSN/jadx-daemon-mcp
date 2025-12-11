@@ -64,8 +64,6 @@ public class McpServer {
 
 		/* Code browser API */
 		app.get("/get_method_decompiled_code", this::handleGetMethodDecompiledCode);
-		app.get("/get_class_decompiled_code", this::handleGetClassDecompiledCode);
-		app.get("/get_class_smali_code", this::handleGetClassSmaliCode);
 
 		/* Class structure API */
 		app.get("/get_superclass", this::handleGetSuperClass);
@@ -237,56 +235,6 @@ public class McpServer {
 				ctx.json(response);
 			} else {
 				response.put("error", "Cannot find method `" + methodName + "`." );
-				ctx.status(404).json(response);
-			}
-		} else {
-			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(404).json(response);
-		}
-	}
-
-	public void handleGetClassDecompiledCode(Context ctx) {
-		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
-		String className = ctx.queryParam("className");
-
-		JadxInstance instance = getJadx(instanceId);
-		if (instance != null) {
-            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
-
-			String code = instance.getClassDecompiledCode(
-                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
-            );
-			if (code != null) {
-				response.put("result", code);
-				ctx.json(response);
-			} else {
-				response.put("error", "Cannot find class `" + className + "`." );
-				ctx.status(404).json(response);
-			}
-		} else {
-			response.put("error", "Cannot find instance by provided instance id: " + instanceId);
-			ctx.status(404).json(response);
-		}
-	}
-
-	public void handleGetClassSmaliCode(Context ctx) {
-		Map<String, Object> response = new HashMap<>();
-		String instanceId = ctx.queryParam("instanceId");
-		String className = ctx.queryParam("className");
-
-		JadxInstance instance = getJadx(instanceId);
-		if (instance != null) {
-            boolean isJVMSignature = SignatureConverter.isJVMSignature(className);
-
-            String code = instance.getClassSmaliCode(
-                    isJVMSignature ? SignatureConverter.toJavaClassSignature(className) : className
-            );
-			if (code != null) {
-				response.put("result", code);
-				ctx.json(response);
-			} else {
-				response.put("error", "Cannot find class `" + className + "`." );
 				ctx.status(404).json(response);
 			}
 		} else {

@@ -97,22 +97,6 @@ public class JadxInstance {
 		return method != null ? method.getCodeStr() : null;
 	}
 
-	public String getClassDecompiledCode(String className) {
-		if (!isLoaded()) return null;
-
-        JavaClass cls = findJavaClass(className);
-
-		return cls != null ? cls.getCode() : null;
-	}
-
-	public String getClassSmaliCode(String className) {
-		if (!isLoaded()) return null;
-
-        JavaClass cls = findJavaClass(className);
-
-		return cls != null ? cls.getSmali() : null;
-	}
-
 	public String getSuperClass(String className) {
 		if (!isLoaded()) return null;
 
@@ -284,7 +268,7 @@ public class JadxInstance {
         AidlClass aidlClass = findAidlClass(aidlClassName);
 
         return Optional.ofNullable(aidlClass)
-                .flatMap(ac -> Optional.ofNullable(ac.findImpl(classSearcher, false))) // 使用了外部依赖
+                .flatMap(ac -> Optional.ofNullable(ac.findImpl(classSearcher, false)))
                 .map(JavaClass::getFullName)
                 .orElse(null);
     }

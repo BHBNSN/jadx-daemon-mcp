@@ -304,41 +304,6 @@ def get_method_decompiled_code(
     response = requests.get(url + "/get_method_decompiled_code", params=query)
     return json.loads(response.text)
 
-
-@mcp.tool(
-    name="get_class_decompiled_code",
-    description="Get the decompiled code of the given java class."
-)
-def get_class_decompiled_code(
-    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
-    className: Annotated[str, CLASS_ANNOTATED_STR],
-) -> dict:
-    url = get_jadx_url()
-    query = {
-        "instanceId": instanceId,
-        "className": className,
-    }
-    response = requests.get(url + "/get_class_decompiled_code", params=query)
-    return json.loads(response.text)
-
-
-@mcp.tool(
-    name="get_class_smali_code",
-    description="Get the smali code of the given java class."
-)
-def get_class_smali_code(
-    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
-    className: Annotated[str, CLASS_ANNOTATED_STR],
-) -> dict:
-    url = get_jadx_url()
-    query = {
-        "instanceId": instanceId,
-        "className": className,
-    }
-    response = requests.get(url + "/get_class_smali_code", params=query)
-    return json.loads(response.text)
-
-
 @mcp.tool(
     name="get_superclass",
     description="Get the superclass of the given java class."

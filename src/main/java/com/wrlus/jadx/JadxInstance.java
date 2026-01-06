@@ -97,6 +97,14 @@ public class JadxInstance {
 		return method != null ? method.getCodeStr() : null;
 	}
 
+    public String getClassDecompiledCode(String className) {
+        if (!isLoaded()) return null;
+
+        JavaClass cls = findJavaClass(className);
+
+        return cls != null ? cls.getCode() : null;
+    }
+
 	public String getSuperClass(String className) {
 		if (!isLoaded()) return null;
 
@@ -234,6 +242,40 @@ public class JadxInstance {
         }
         return aidlCacheMap.keySet().stream().toList();
     }
+
+    public List<String> searchAllClasses() {
+        if (!isLoaded()) return null;
+        List<String> allClassNames = new ArrayList<>();
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            allClassNames.add(cls.getFullName());
+        }
+        return allClassNames;
+    }
+
+    public List<String> searchStringFromClasses(String searchString) {
+        if (!isLoaded()) return null;
+        if (searchString == null || searchString.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 使用并行流 (Parallel Stream) 来利用多核 CPU 加速搜索和反编译过程
+        return decompiler.getClassesWithInners()
+                .parallelStream() // 开启并行处理
+                .filter(cls -> {
+                    try {
+                        // getCode() 会触发反编译，这是最耗时的步骤
+                        String code = cls.getCode();
+                        return code != null && code.contains(searchString);
+                    } catch (Exception e) {
+                        // 防止单个类反编译失败导致整个搜索崩溃
+                        logger.error("Failed to search in class: {}", cls.getFullName(), e);
+                        return false;
+                    }
+                })
+                .map(JavaClass::getFullName)
+                .collect(Collectors.toList()); // 收集结果
+    }
+
 
     private AidlClass findAidlClass(String aidlClassName) {
         AidlClass cachedAidl = aidlCacheMap.get(aidlClassName);

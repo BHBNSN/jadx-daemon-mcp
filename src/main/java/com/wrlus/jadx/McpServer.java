@@ -61,9 +61,12 @@ public class McpServer {
 
 		/* AndroidManifest API */
 		app.get("/get_manifest", this::handleGetManifest);
+        app.get("/get_all_classes", this::handleGetAllClasses);
+        app.get("/search_string_from_all_classes", this::handleSearchStringFromClasses);
 
 		/* Code browser API */
 		app.get("/get_method_decompiled_code", this::handleGetMethodDecompiledCode);
+        app.get("/get_class_decompiled_code", this::handleGetClassDecompiledCode);
 
 		/* Class structure API */
 		app.get("/get_superclass", this::handleGetSuperClass);
@@ -217,6 +220,47 @@ public class McpServer {
 		}
 	}
 
+    public void handleGetAllClasses(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> Classes = instance.searchAllClasses();
+            if (Classes != null) {
+                response.put("result", Classes);
+                ctx.json(response);
+            } else {
+                response.put("error", "Failed to retrieve classes." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
+
+    public void handleSearchStringFromClasses(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String searchString = ctx.queryParam("searchString");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> classes = instance.searchStringFromClasses(searchString);
+            if (classes != null) {
+                response.put("result", classes);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find classes with keyword: " + searchString );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
+
 	public void handleGetMethodDecompiledCode(Context ctx) {
 		Map<String, Object> response = new HashMap<>();
 		String instanceId = ctx.queryParam("instanceId");
@@ -242,6 +286,30 @@ public class McpServer {
 			ctx.status(404).json(response);
 		}
 	}
+
+    public void handleGetClassDecompiledCode(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String className = ctx.queryParam("className");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+
+            String code = instance.getClassDecompiledCode(
+                    className
+            );
+            if (code != null) {
+                response.put("result", code);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find class `" + className + "`." );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
 
 	public void handleGetSuperClass(Context ctx) {
 		Map<String, Object> response = new HashMap<>();

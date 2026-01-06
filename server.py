@@ -154,6 +154,35 @@ def get_manifest(
     response = requests.get(url + "/get_manifest", params=query)
     return json.loads(response.text)
 
+@mcp.tool(
+    name="get_all_classes",
+    description="Get all class names from the APK."
+)
+def get_all_classes(
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+    }
+    response = requests.get(url + "/get_all_classes", params=query)
+    return json.loads(response.text)
+
+@mcp.tool(
+    name="search_string_from_all_classes",
+    description="Search for a string in all classes, return class full name."
+)
+def search_string_from_all_classes(
+    instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+    searchString: Annotated[str, "The string to search for."]
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "searchString": searchString
+    }
+    response = requests.get(url + "/search_string_from_all_classes", params=query)
+    return json.loads(response.text)
 
 @mcp.tool(
     name="get_all_exported_activities",
@@ -299,6 +328,22 @@ def get_method_decompiled_code(
         "methodName": methodName,
     }
     response = requests.get(url + "/get_method_decompiled_code", params=query)
+    return json.loads(response.text)
+
+@mcp.tool(
+    name="get_class_decompiled_code",
+    description="Get the decompiled code of the given java class."
+)
+def get_class_decompiled_code(
+        instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+        className: Annotated[str, CLASS_ANNOTATED_STR],
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "className": className,
+    }
+    response = requests.get(url + "/get_class_decompiled_code", params=query)
     return json.loads(response.text)
 
 @mcp.tool(

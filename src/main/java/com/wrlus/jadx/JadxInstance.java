@@ -261,18 +261,26 @@ public class JadxInstance {
         // 使用并行流 (Parallel Stream) 来利用多核 CPU 加速搜索和反编译过程
         return decompiler.getClassesWithInners()
                 .parallelStream() // 开启并行处理
-                .filter(cls -> {
+                .flatMap(cls -> {
                     try {
-                        // getCode() 会触发反编译，这是最耗时的步骤
                         String code = cls.getCode();
-                        return code != null && code.contains(searchString);
+                        if (code != null && code.contains(searchString)) {
+                            return Optional.ofNullable(cls.getMethods())
+                                    .orElseGet(Collections::emptyList)
+                                    .stream()
+                                    .filter(mth -> {
+                                        String mthCode = mth.getCodeStr();
+                                        return mthCode != null && mthCode.contains(searchString);
+                                    })
+                                    .map(JavaMethod::toString);
+                        }
+                        return java.util.stream.Stream.empty();
                     } catch (Exception e) {
                         // 防止单个类反编译失败导致整个搜索崩溃
                         logger.error("Failed to search in class: {}", cls.getFullName(), e);
-                        return false;
+                        return java.util.stream.Stream.empty();
                     }
                 })
-                .map(JavaClass::getFullName)
                 .collect(Collectors.toList()); // 收集结果
     }
 

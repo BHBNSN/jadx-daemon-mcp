@@ -1,0 +1,1142 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Jadx Daemon MCP HTTP Server API",
+    "description": "Jadx反编译守护进程的MCP HTTP服务器API，用于加载APK/Dex文件并提供反编译功能",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "默认服务器地址，实际运行时可能不同"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "健康检查",
+        "description": "检查服务器是否正常运行",
+        "responses": {
+          "200": {
+            "description": "服务器健康状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/load": {
+      "get": {
+        "summary": "加载Android二进制文件",
+        "description": "加载APK/Dex/Jar文件到反编译实例",
+        "parameters": [
+          {
+            "name": "filePath",
+            "in": "query",
+            "required": true,
+            "description": "要加载的文件路径",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功加载文件",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "达到最大实例数量限制",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/load_dir": {
+      "get": {
+        "summary": "加载目录中的Android文件",
+        "description": "加载指定目录中的APK/Dex/Jar文件",
+        "parameters": [
+          {
+            "name": "dirPath",
+            "in": "query",
+            "required": true,
+            "description": "包含Android文件的目录路径",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功加载目录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "达到最大实例数量限制",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lookup_instance_id": {
+      "get": {
+        "summary": "查找实例ID",
+        "description": "通过文件路径查找已加载的实例ID",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "description": "文件或目录路径",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "找到实例ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "未找到实例",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unload": {
+      "get": {
+        "summary": "卸载实例",
+        "description": "卸载指定的反编译实例",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "要卸载的实例ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功卸载实例",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnloadResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unload_all": {
+      "get": {
+        "summary": "卸载所有实例",
+        "description": "卸载所有已加载的反编译实例",
+        "responses": {
+          "200": {
+            "description": "成功卸载所有实例",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnloadAllResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_manifest": {
+      "get": {
+        "summary": "获取AndroidManifest.xml",
+        "description": "获取已加载文件的AndroidManifest.xml内容",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取AndroidManifest.xml",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或AndroidManifest.xml",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_all_classes": {
+      "get": {
+        "summary": "获取所有类",
+        "description": "获取已加载文件中的所有类名",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取类列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search_string_from_all_classes": {
+      "get": {
+        "summary": "在所有类中搜索字符串",
+        "description": "在所有类的代码中搜索包含特定字符串的类",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "searchString",
+            "in": "query",
+            "required": true,
+            "description": "要搜索的字符串",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功搜索到包含字符串的类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或没有找到包含字符串的类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_method_decompiled_code": {
+      "get": {
+        "summary": "获取方法反编译代码",
+        "description": "获取指定方法的反编译代码",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "methodName",
+            "in": "query",
+            "required": true,
+            "description": "方法名（支持JVM签名格式）",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取方法反编译代码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或方法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_class_decompiled_code": {
+      "get": {
+        "summary": "获取类反编译代码",
+        "description": "获取指定类的反编译代码",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取类反编译代码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_superclass": {
+      "get": {
+        "summary": "获取类的父类",
+        "description": "获取指定类的父类名",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取父类名",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuperClassResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_interfaces": {
+      "get": {
+        "summary": "获取类实现的接口",
+        "description": "获取指定类实现的所有接口",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取接口列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterfacesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_class_methods": {
+      "get": {
+        "summary": "获取类的方法列表",
+        "description": "获取指定类的所有方法",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取方法列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_class_fields": {
+      "get": {
+        "summary": "获取类的字段列表",
+        "description": "获取指定类的所有字段",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取字段列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_method_callers": {
+      "get": {
+        "summary": "获取方法的调用者",
+        "description": "获取调用指定方法的所有位置",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "methodName",
+            "in": "query",
+            "required": true,
+            "description": "方法名（支持JVM签名格式）",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取方法调用者列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallersResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或方法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_class_callers": {
+      "get": {
+        "summary": "获取类的调用者",
+        "description": "获取使用指定类的所有位置",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取类调用者列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallersResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_field_callers": {
+      "get": {
+        "summary": "获取字段的调用者",
+        "description": "获取访问指定字段的所有位置",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fieldName",
+            "in": "query",
+            "required": true,
+            "description": "字段名（支持JVM签名格式）",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取字段调用者列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallersResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或字段",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_method_overrides": {
+      "get": {
+        "summary": "获取方法的重写关系",
+        "description": "获取与指定方法相关的重写方法（包括父类和子类）",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "methodName",
+            "in": "query",
+            "required": true,
+            "description": "方法名（支持JVM签名格式）",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取方法重写关系列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或方法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search_aidl_classes": {
+      "get": {
+        "summary": "搜索AIDL类",
+        "description": "在已加载的文件中搜索AIDL接口类",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取AIDL类列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AidlClassesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或AIDL类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_aidl_methods": {
+      "get": {
+        "summary": "获取AIDL方法",
+        "description": "获取指定AIDL接口的所有方法",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "AIDL接口类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取AIDL方法列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或AIDL类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_aidl_impl_class": {
+      "get": {
+        "summary": "获取AIDL实现类",
+        "description": "获取指定AIDL接口的实现类",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "required": true,
+            "description": "实例ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": true,
+            "description": "AIDL接口类名",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取AIDL实现类名",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AidlImplClassResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到实例或AIDL实现类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update_max_instance_count": {
+      "get": {
+        "summary": "更新最大实例数量",
+        "description": "更新允许的最大反编译实例数量",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "required": true,
+            "description": "新的最大实例数量",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功更新最大实例数量",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "description": "空对象表示成功"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "服务器地址"
+          }
+        }
+      },
+      "LoadResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "新创建的实例ID"
+          }
+        }
+      },
+      "UnloadResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "成功卸载的实例ID"
+          }
+        }
+      },
+      "UnloadAllResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "integer",
+            "description": "成功卸载的实例数量"
+          }
+        }
+      },
+      "ManifestResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "AndroidManifest.xml的内容"
+          }
+        }
+      },
+      "ClassesResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "类名列表"
+          }
+        }
+      },
+      "CodeResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "反编译的代码内容"
+          }
+        }
+      },
+      "SuperClassResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "父类名"
+          }
+        }
+      },
+      "InterfacesResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "接口名列表"
+          }
+        }
+      },
+      "MethodsResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "方法列表"
+          }
+        }
+      },
+      "FieldsResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "字段列表"
+          }
+        }
+      },
+      "CallersResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "调用者列表"
+          }
+        }
+      },
+      "AidlClassesResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "AIDL类名列表"
+          }
+        }
+      },
+      "AidlImplClassResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "AIDL实现类名"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "错误信息"
+          }
+        }
+      }
+    }
+  }
+}

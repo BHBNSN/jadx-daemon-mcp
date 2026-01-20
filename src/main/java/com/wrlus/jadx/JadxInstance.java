@@ -13,6 +13,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.regex.*;
 
 public class JadxInstance {
 	private static final Logger logger = LoggerFactory.getLogger(JadxInstance.class);
@@ -96,6 +97,14 @@ public class JadxInstance {
 
 		return method != null ? method.getCodeStr() : null;
 	}
+
+    public String getClassDecompiledCode(String className) {
+        if (!isLoaded()) return null;
+
+        JavaClass cls = findJavaClass(className);
+
+        return cls != null ? cls.getCode() : null;
+    }
 
 	public String getSuperClass(String className) {
 		if (!isLoaded()) return null;
@@ -234,6 +243,58 @@ public class JadxInstance {
         }
         return aidlCacheMap.keySet().stream().toList();
     }
+
+    public List<String> searchAllClasses() {
+        if (!isLoaded()) return null;
+        List<String> allClassNames = new ArrayList<>();
+        for (JavaClass cls : decompiler.getClassesWithInners()) {
+            allClassNames.add(cls.getFullName());
+        }
+        return allClassNames;
+    }
+
+    public List<String> searchStringFromClasses(String searchString, boolean regex) {
+        if (!isLoaded()) return null;
+        if (searchString == null || searchString.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 使用并行流 (Parallel Stream) 来利用多核 CPU 加速搜索和反编译过程
+        return decompiler.getClassesWithInners()
+                .parallelStream() // 开启并行处理
+                .flatMap(cls -> {
+                    try {
+                        String code = cls.getCode();
+                        if (!regex && code != null && code.toLowerCase().contains(searchString.toLowerCase())) {
+                            return Optional.ofNullable(cls.getMethods())
+                                    .orElseGet(Collections::emptyList)
+                                    .stream()
+                                    .filter(mth -> {
+                                        String mthCode = mth.getCodeStr();
+                                        return mthCode != null && mthCode.toLowerCase().contains(searchString.toLowerCase());
+                                    })
+                                    .map(JavaMethod::toString);
+                        } else if (regex && code != null && Pattern.matches(searchString, code)) {
+                            return Optional.ofNullable(cls.getMethods())
+                                    .orElseGet(Collections::emptyList)
+                                    .stream()
+                                    .filter(mth -> {
+                                        String mthCode = mth.getCodeStr();
+                                        return mthCode != null && Pattern.matches(searchString, mthCode);
+                                    })
+                                    .map(JavaMethod::toString);
+                        }
+
+                        return java.util.stream.Stream.empty();
+                    } catch (Exception e) {
+                        // 防止单个类反编译失败导致整个搜索崩溃
+                        logger.error("Failed to search in class: {}", cls.getFullName(), e);
+                        return java.util.stream.Stream.empty();
+                    }
+                })
+                .collect(Collectors.toList()); // 收集结果
+    }
+
 
     private AidlClass findAidlClass(String aidlClassName) {
         AidlClass cachedAidl = aidlCacheMap.get(aidlClassName);

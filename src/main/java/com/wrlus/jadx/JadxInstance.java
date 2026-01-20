@@ -13,6 +13,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.regex.*;
 
 public class JadxInstance {
 	private static final Logger logger = LoggerFactory.getLogger(JadxInstance.class);
@@ -252,7 +253,7 @@ public class JadxInstance {
         return allClassNames;
     }
 
-    public List<String> searchStringFromClasses(String searchString) {
+    public List<String> searchStringFromClasses(String searchString, boolean regex) {
         if (!isLoaded()) return null;
         if (searchString == null || searchString.isEmpty()) {
             return Collections.emptyList();
@@ -264,16 +265,26 @@ public class JadxInstance {
                 .flatMap(cls -> {
                     try {
                         String code = cls.getCode();
-                        if (code != null && code.contains(searchString)) {
+                        if (!regex && code != null && code.toLowerCase().contains(searchString.toLowerCase())) {
                             return Optional.ofNullable(cls.getMethods())
                                     .orElseGet(Collections::emptyList)
                                     .stream()
                                     .filter(mth -> {
                                         String mthCode = mth.getCodeStr();
-                                        return mthCode != null && mthCode.contains(searchString);
+                                        return mthCode != null && mthCode.toLowerCase().contains(searchString.toLowerCase());
+                                    })
+                                    .map(JavaMethod::toString);
+                        } else if (regex && code != null && Pattern.matches(searchString, code)) {
+                            return Optional.ofNullable(cls.getMethods())
+                                    .orElseGet(Collections::emptyList)
+                                    .stream()
+                                    .filter(mth -> {
+                                        String mthCode = mth.getCodeStr();
+                                        return mthCode != null && Pattern.matches(searchString, mthCode);
                                     })
                                     .map(JavaMethod::toString);
                         }
+
                         return java.util.stream.Stream.empty();
                     } catch (Exception e) {
                         // 防止单个类反编译失败导致整个搜索崩溃

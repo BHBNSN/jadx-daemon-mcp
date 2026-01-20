@@ -167,11 +167,11 @@ def get_manifest(
 #     }
 #     response = requests.get(url + "/get_all_classes", params=query)
 #     return json.loads(response.text)
-#
-# @mcp.tool(
-#     name="search_string_from_all_classes",
-#     description="Search for a string in all classes, return class full name."
-# )
+
+@mcp.tool(
+    name="search_string_from_all_classes",
+    description="Search for a string in all classes, ignore case, return method full name."
+)
 
 def search_string_from_all_classes(
     instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
@@ -183,6 +183,23 @@ def search_string_from_all_classes(
         "searchString": searchString
     }
     response = requests.get(url + "/search_string_from_all_classes", params=query)
+    return json.loads(response.text)
+
+@mcp.tool(
+    name="search_regex_from_all_classes",
+    description="Search for a regex string in all classes, return method full name."
+)
+
+def search_regex_from_all_classes(
+        instanceId: Annotated[str, INSTANCE_ID_ANNOTATED_STR],
+        searchRegex: Annotated[str, "The regex string to search for."]
+) -> dict:
+    url = get_jadx_url()
+    query = {
+        "instanceId": instanceId,
+        "searchRegex": searchRegex
+    }
+    response = requests.get(url + "/search_regex_from_all_classes", params=query)
     return json.loads(response.text)
 
 @mcp.tool(

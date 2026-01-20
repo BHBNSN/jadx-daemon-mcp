@@ -62,7 +62,9 @@ public class McpServer {
 		/* AndroidManifest API */
 		app.get("/get_manifest", this::handleGetManifest);
         app.get("/get_all_classes", this::handleGetAllClasses);
+
         app.get("/search_string_from_all_classes", this::handleSearchStringFromClasses);
+        app.get("/search_regex_from_all_classes", this::handleSearchRegexFromClasses);
 
 		/* Code browser API */
 		app.get("/get_method_decompiled_code", this::handleGetMethodDecompiledCode);
@@ -247,12 +249,33 @@ public class McpServer {
 
         JadxInstance instance = getJadx(instanceId);
         if (instance != null) {
-            List<String> classes = instance.searchStringFromClasses(searchString);
+            List<String> classes = instance.searchStringFromClasses(searchString, false);
             if (classes != null) {
                 response.put("result", classes);
                 ctx.json(response);
             } else {
                 response.put("error", "Cannot find classes with keyword: " + searchString );
+                ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
+
+    public void handleSearchRegexFromClasses(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String searchRegex = ctx.queryParam("searchRegex");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> classes = instance.searchStringFromClasses(searchRegex, true);
+            if (classes != null) {
+                response.put("result", classes);
+                ctx.json(response);
+            } else {
+                response.put("error", "Cannot find classes with regex: " + searchRegex );
                 ctx.status(404).json(response);
             }
         } else {

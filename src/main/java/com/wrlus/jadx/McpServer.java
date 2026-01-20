@@ -307,7 +307,7 @@ public class McpServer {
             if (searchStrings != null && !searchStrings.isEmpty()) {
                 Map<String, List<String>> rawResults = instance.searchStringsFromClasses(searchStrings);
                 
-                // Invert the results to format: "searchString": ["method1", "method2", ...]
+                // 返回格式："searchString": ["方法1", "方法2", ...]
                 Map<String, List<String>> invertedResults = new HashMap<>();
                 
                 for (Map.Entry<String, List<String>> entry : rawResults.entrySet()) {

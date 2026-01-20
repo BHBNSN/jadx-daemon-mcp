@@ -254,10 +254,25 @@ public class JadxInstance {
     }
 
     public List<String> searchStringFromClasses(String searchString, boolean regex) {
-        if (!isLoaded()) return null;
-        if (searchString == null || searchString.isEmpty()) {
-            return Collections.emptyList();
+        Map<String, List<String>> results = searchStringsFromClasses(Collections.singletonList(searchString), regex);
+        return new ArrayList<>(results.keySet());
+    }
+
+    public Map<String, List<String>> searchStringsFromClasses(List<String> searchStrings) {
+        return searchStringsFromClasses(searchStrings, false);
+    }
+
+    public Map<String, List<String>> searchStringsFromClasses(List<String> searchStrings, boolean regex) {
+        if (!isLoaded()) return Collections.emptyMap();
+        if (searchStrings == null || searchStrings.isEmpty()) {
+            return Collections.emptyMap();
         }
+
+        // Distinct search strings
+        List<String> targets = searchStrings.stream()
+                .filter(s -> s != null && !s.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
 
         // 使用并行流 (Parallel Stream) 来利用多核 CPU 加速搜索和反编译过程
         return decompiler.getClassesWithInners()
@@ -265,34 +280,60 @@ public class JadxInstance {
                 .flatMap(cls -> {
                     try {
                         String code = cls.getCode();
-                        if (!regex && code != null && code.toLowerCase().contains(searchString.toLowerCase())) {
-                            return Optional.ofNullable(cls.getMethods())
-                                    .orElseGet(Collections::emptyList)
-                                    .stream()
-                                    .filter(mth -> {
-                                        String mthCode = mth.getCodeStr();
-                                        return mthCode != null && mthCode.toLowerCase().contains(searchString.toLowerCase());
-                                    })
-                                    .map(JavaMethod::toString);
-                        } else if (regex && code != null && Pattern.matches(searchString, code)) {
-                            return Optional.ofNullable(cls.getMethods())
-                                    .orElseGet(Collections::emptyList)
-                                    .stream()
-                                    .filter(mth -> {
-                                        String mthCode = mth.getCodeStr();
-                                        return mthCode != null && Pattern.matches(searchString, mthCode);
-                                    })
-                                    .map(JavaMethod::toString);
+                        if (code == null) return java.util.stream.Stream.empty();
+                        String codeLower = regex ? null : code.toLowerCase();
+
+                        // Optimization: Check if class contains any of the strings first
+                        List<String> classPositives = new ArrayList<>();
+                        for (String target : targets) {
+                            boolean matched;
+                            if (regex) {
+                                matched = Pattern.matches(target, code);
+                            } else {
+                                matched = codeLower.contains(target.toLowerCase());
+                            }
+                            if (matched) classPositives.add(target);
                         }
 
-                        return java.util.stream.Stream.empty();
+                        if (classPositives.isEmpty()) {
+                            return java.util.stream.Stream.empty();
+                        }
+
+                        // Check methods
+                        return Optional.ofNullable(cls.getMethods())
+                                .orElseGet(Collections::emptyList)
+                                .stream()
+                                .map(mth -> {
+                                    String mthCode = mth.getCodeStr();
+                                    if (mthCode == null) return null;
+                                    String mthCodeLower = regex ? null : mthCode.toLowerCase();
+
+                                    List<String> validMatches = new ArrayList<>();
+                                    for (String target : classPositives) {
+                                        boolean matched;
+                                        if (regex) {
+                                            matched = Pattern.matches(target, mthCode);
+                                        } else {
+                                            matched = mthCodeLower.contains(target.toLowerCase());
+                                        }
+                                        if (matched) validMatches.add(target);
+                                    }
+
+                                    if (validMatches.isEmpty()) return null;
+                                    return new AbstractMap.SimpleEntry<>(mth.toString(), validMatches);
+                                })
+                                .filter(Objects::nonNull);
                     } catch (Exception e) {
                         // 防止单个类反编译失败导致整个搜索崩溃
                         logger.error("Failed to search in class: {}", cls.getFullName(), e);
                         return java.util.stream.Stream.empty();
                     }
                 })
-                .collect(Collectors.toList()); // 收集结果
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1
+                ));
     }
 
 

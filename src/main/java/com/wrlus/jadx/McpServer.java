@@ -64,6 +64,7 @@ public class McpServer {
         app.get("/get_all_classes", this::handleGetAllClasses);
 
         app.get("/search_string_from_all_classes", this::handleSearchStringFromClasses);
+        app.get("/search_strings_from_all_classes", this::handleSearchStringsFromClasses);
         app.get("/search_regex_from_all_classes", this::handleSearchRegexFromClasses);
 
 		/* Code browser API */
@@ -277,6 +278,51 @@ public class McpServer {
             } else {
                 response.put("error", "Cannot find classes with regex: " + searchRegex );
                 ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
+
+    // 处理同时输入多个字符串
+    public void handleSearchStringsFromClasses(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String searchStringsJson = ctx.queryParam("searchStrings");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<String> searchStrings = null;
+            try {
+                Gson gson = new Gson();
+                Type listType = new com.google.gson.reflect.TypeToken<List<String>>(){}.getType();
+                searchStrings = gson.fromJson(searchStringsJson, listType);
+            } catch (Exception e) {
+                response.put("error", "Invalid searchStrings format. Expected JSON array of strings: " + e.getMessage());
+                ctx.status(400).json(response);
+                return;
+            }
+
+            if (searchStrings != null && !searchStrings.isEmpty()) {
+                Map<String, List<String>> rawResults = instance.searchStringsFromClasses(searchStrings);
+                
+                // Invert the results to format: "searchString": ["method1", "method2", ...]
+                Map<String, List<String>> invertedResults = new HashMap<>();
+                
+                for (Map.Entry<String, List<String>> entry : rawResults.entrySet()) {
+                    String methodSig = entry.getKey();
+                    List<String> matchedKeywords = entry.getValue();
+                    for (String keyword : matchedKeywords) {
+                        invertedResults.computeIfAbsent(keyword, k -> new java.util.ArrayList<>()).add(methodSig);
+                    }
+                }
+
+                response.put("result", invertedResults);
+                ctx.json(response);
+            } else {
+                response.put("error", "searchStrings list is empty or null");
+                ctx.status(400).json(response);
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);

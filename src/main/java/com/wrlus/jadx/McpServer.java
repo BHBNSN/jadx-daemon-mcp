@@ -308,17 +308,17 @@ public class McpServer {
                 Map<String, List<String>> rawResults = instance.searchStringsFromClasses(searchStrings);
                 
                 // 返回格式："searchString": ["方法1", "方法2", ...]
-                Map<String, List<String>> invertedResults = new HashMap<>();
-                
-                for (Map.Entry<String, List<String>> entry : rawResults.entrySet()) {
-                    String methodSig = entry.getKey();
-                    List<String> matchedKeywords = entry.getValue();
-                    for (String keyword : matchedKeywords) {
-                        invertedResults.computeIfAbsent(keyword, k -> new java.util.ArrayList<>()).add(methodSig);
-                    }
-                }
+//                Map<String, List<String>> invertedResults = new HashMap<>();
+//
+//                for (Map.Entry<String, List<String>> entry : rawResults.entrySet()) {
+//                    String methodSig = entry.getKey();
+//                    List<String> matchedKeywords = entry.getValue();
+//                    for (String keyword : matchedKeywords) {
+//                        invertedResults.computeIfAbsent(keyword, k -> new java.util.ArrayList<>()).add(methodSig);
+//                    }
+//                }
 
-                response.put("result", invertedResults);
+                response.put("result", rawResults);
                 ctx.json(response);
             } else {
                 response.put("error", "searchStrings list is empty or null");
@@ -498,7 +498,7 @@ public class McpServer {
                 response.put("result", callers);
                 ctx.json(response);
             } else {
-                response.put("error", "Cannot find caller for method `" + methodName + "`." );
+                response.put("error", "Cannot find caller for method `" + methodName + "` because not find this method." );
                 ctx.status(404).json(response);
             }
         } else {

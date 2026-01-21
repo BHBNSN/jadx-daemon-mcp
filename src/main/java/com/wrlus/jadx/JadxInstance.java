@@ -295,9 +295,10 @@ public class JadxInstance {
                             if (matched) classPositives.add(target);
                         }
 
-                        if (classPositives.isEmpty()) {
+                        if (classPositives.isEmpty() && ! cls.getFullName().contains("AnonymousClass")) {
                             return java.util.stream.Stream.empty();
                         }
+
 
                         // Check methods
                         return Optional.ofNullable(cls.getMethods())
@@ -309,6 +310,9 @@ public class JadxInstance {
                                     String mthCodeLower = regex ? null : mthCode.toLowerCase();
 
                                     List<String> validMatches = new ArrayList<>();
+                                    if (classPositives.isEmpty()){
+                                        classPositives.addAll(targets);
+                                    }
                                     for (String target : classPositives) {
                                         boolean matched;
                                         if (regex) {
@@ -386,6 +390,13 @@ public class JadxInstance {
 
     private JavaMethod findJavaMethod(String className, String methodName) {
         JavaClass cls = findJavaClass(className);
+        if (cls == null){
+            for (JavaClass clss : decompiler.getClassesWithInners()) {
+                if (clss.getFullName().replace("AnonymousClass", "").equals(className)) {
+                   cls = clss;
+                }
+            }
+        }
         if (cls != null) {
             for (JavaMethod mtd : cls.getMethods()) {
                 if (methodName.equals(mtd.toString())) {

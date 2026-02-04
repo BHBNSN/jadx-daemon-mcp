@@ -4,6 +4,9 @@ import com.wrlus.jadx.aidl.AidlClass;
 import com.wrlus.jadx.aidl.ClassSearch;
 import jadx.api.*;
 import jadx.core.dex.instructions.args.ArgType;
+import jadx.core.dex.instructions.InvokeNode;
+import jadx.core.dex.nodes.InsnNode;
+import jadx.core.dex.nodes.MethodNode;
 import jadx.core.utils.android.AndroidManifestParser;
 import jadx.core.xmlgen.ResContainer;
 import org.slf4j.Logger;
@@ -340,6 +343,107 @@ public class JadxInstance {
                 ));
     }
 
+    public Map<String, List<String>> searchMethodCalls(List<Map<String, String>> criteria) {
+        if (!isLoaded()) return Collections.emptyMap();
+        if (criteria == null || criteria.isEmpty()) return Collections.emptyMap();
+
+        // 1. Prepare inputs for searchStringsFromClasses
+        Map<String, String> strToClassMap = new HashMap<>();
+        List<String> searchStrings = new ArrayList<>();
+
+        for (Map<String, String> item : criteria) {
+            String s = item.get("str");
+            String c = item.get("class");
+            if (s != null && c != null) {
+                searchStrings.add(s);
+                strToClassMap.put(s, c);
+            }
+        }
+
+        if (searchStrings.isEmpty()) return Collections.emptyMap();
+
+        // 2. Call existing searchStringsFromClasses to get candidates
+        Map<String, List<String>> rawResults = searchStringsFromClasses(searchStrings);
+        if (rawResults.isEmpty()) return Collections.emptyMap();
+
+        // 3. Filter candidates by checking types in instructions
+        Map<String, List<String>> finalResults = new ConcurrentHashMap<>();
+
+        // Use parallel stream for filtering
+        rawResults.entrySet().parallelStream().forEach(entry -> {
+            String methodSig = entry.getKey();
+            List<String> candidates = entry.getValue(); // Potential matched strings in this method
+
+            // Retrieve MethodNode. methodSig is expected to be compatible with SignatureConverter or findJavaMethod
+            String className = SignatureConverter.extractJavaClassFQN(methodSig);
+            JavaMethod javaMethod = findJavaMethod(className, methodSig);
+
+            if (javaMethod == null) return;
+
+            MethodNode mthNode = javaMethod.getMethodNode();
+            if (mthNode == null) return;
+
+            try {
+                if (mthNode.getInstructions() == null) {
+                    mthNode.load();
+                    if (mthNode.getInstructions() == null && !mthNode.isNoCode()) {
+                        mthNode.unload();
+                        mthNode.load();
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to load instructions for method: {}", methodSig, e);
+                return;
+            }
+
+            InsnNode[] instructions = mthNode.getInstructions();
+            if (instructions == null) return;
+
+            Set<String> verifiedMatches = new HashSet<>();
+
+            // Check each candidate string against instructions
+            for (String candidateStr : candidates) {
+                String targetClass = strToClassMap.get(candidateStr);
+                int parenIdx = candidateStr.indexOf('(');
+                String beforeParams = parenIdx >= 0 ? candidateStr.substring(0, parenIdx) : candidateStr;
+                int lastDotIdx = beforeParams.lastIndexOf('.');
+                String cleanMethodName = (lastDotIdx >= 0 ? beforeParams.substring(lastDotIdx + 1) : beforeParams).trim();
+
+                boolean matchFound = false;
+                for (InsnNode insn : instructions) {
+                    if (insn instanceof InvokeNode) {
+                        InvokeNode invoke = (InvokeNode) insn;
+                        if (invoke.getCallMth().getName().equals(cleanMethodName)) {
+                            // Check method's declaring class directly
+                            boolean typeMatch = false;
+                            if (invoke.getCallMth().getDeclClass() != null) {
+                                String declTypeStr = invoke.getCallMth().getDeclClass().toString();
+                                String declFullName = invoke.getCallMth().getDeclClass().getFullName();
+                                if (targetClass.equals(declTypeStr) || targetClass.equals(declFullName)) {
+                                    typeMatch = true;
+                                }
+                            }
+
+                            if (typeMatch) {
+                                matchFound = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (matchFound) {
+                    verifiedMatches.add(candidateStr);
+                }
+            }
+
+            if (!verifiedMatches.isEmpty()) {
+                finalResults.put(methodSig, new ArrayList<>(verifiedMatches));
+            }
+        });
+
+        return finalResults;
+    }
 
     private AidlClass findAidlClass(String aidlClassName) {
         AidlClass cachedAidl = aidlCacheMap.get(aidlClassName);

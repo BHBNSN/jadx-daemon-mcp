@@ -66,6 +66,7 @@ public class McpServer {
         app.get("/search_string_from_all_classes", this::handleSearchStringFromClasses);
         app.get("/search_strings_from_all_classes", this::handleSearchStringsFromClasses);
         app.get("/search_regex_from_all_classes", this::handleSearchRegexFromClasses);
+        app.get("/search_method_calls", this::handleSearchMethodCalls);
 
 		/* Code browser API */
 		app.get("/get_method_decompiled_code", this::handleGetMethodDecompiledCode);
@@ -278,6 +279,38 @@ public class McpServer {
             } else {
                 response.put("error", "Cannot find classes with regex: " + searchRegex );
                 ctx.status(404).json(response);
+            }
+        } else {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+        }
+    }
+
+    public void handleSearchMethodCalls(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String methodCallsJson = ctx.queryParam("methodCalls");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance != null) {
+            List<Map<String, String>> methodCalls;
+            try {
+                Gson gson = new Gson();
+                Type listType = new com.google.gson.reflect.TypeToken<List<Map<String, String>>>(){}.getType();
+                methodCalls = gson.fromJson(methodCallsJson, listType);
+            } catch (Exception e) {
+                response.put("error", "Invalid methodCalls format. Expected JSON array of objects: " + e.getMessage());
+                ctx.status(400).json(response);
+                return;
+            }
+
+            if (methodCalls != null && !methodCalls.isEmpty()) {
+                Map<String, List<String>> results = instance.searchMethodCalls(methodCalls);
+                response.put("result", results);
+                ctx.json(response);
+            } else {
+                response.put("error", "methodCalls list is empty or null");
+                ctx.status(400).json(response);
             }
         } else {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);

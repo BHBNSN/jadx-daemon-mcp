@@ -1,13 +1,7 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     `java-library`
     `application`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-
-	// auto update dependencies with 'useLatestVersions' task
-	id("se.patrikerdes.use-latest-versions") version "0.2.18"
-	id("com.github.ben-manes.versions") version "0.50.0"
+    id("com.gradleup.shadow") version "8.3.9"
 }
 
 application {
@@ -24,6 +18,15 @@ dependencies {
 	implementation("io.javalin:javalin:6.7.0")
 	implementation("org.slf4j:slf4j-simple:2.0.16")
     implementation("org.ow2.asm:asm:9.9")
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.ow2.asm") {
+            useVersion("9.9")
+            because("ASM 9.9 is required to parse Java 25 class files")
+        }
+    }
 }
 
 repositories {

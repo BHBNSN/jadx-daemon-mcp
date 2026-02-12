@@ -20,7 +20,7 @@ target/
 build/
 classes/
 idea/
-.gradle/
+.gradle*/
 
 *-tmp/
 **/tmp/
@@ -30,4 +30,3 @@ idea/
 *.log
 *.cfg
 *.orig
-

@@ -10,10 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class McpServer {
 	private static final Logger logger = LoggerFactory.getLogger(McpServer.class);
@@ -83,6 +80,8 @@ public class McpServer {
         app.get("/get_class_callers", this::handleGetClassCallers);
         app.get("/get_field_callers", this::handleGetFieldCallers);
         app.get("/get_method_overrides", this::handleGetMethodOverrides);
+
+        app.get("/get_multi_method_callers_tree", this::handleGetMultiMethodCallersTree);
 
         /* AIDL API */
         app.get("/search_aidl_classes", this::handleSearchAidlClasses);
@@ -615,6 +614,84 @@ public class McpServer {
             response.put("error", "Cannot find instance by provided instance id: " + instanceId);
             ctx.status(404).json(response);
         }
+    }
+
+    public void handleGetMultiMethodCallersTree(Context ctx) {
+        Map<String, Object> response = new HashMap<>();
+        String instanceId = ctx.queryParam("instanceId");
+        String methodsJson = ctx.queryParam("methods");
+
+        JadxInstance instance = getJadx(instanceId);
+        if (instance == null) {
+            response.put("error", "Cannot find instance by provided instance id: " + instanceId);
+            ctx.status(404).json(response);
+            return;
+        }
+
+        List<String> methods;
+        try {
+            Gson gson = new Gson();
+            Type listType = new com.google.gson.reflect.TypeToken<List<String>>(){}.getType();
+            methods = gson.fromJson(methodsJson, listType);
+        } catch (Exception e) {
+            response.put("error", "Invalid methods format. Expected JSON array of strings: " + e.getMessage());
+            ctx.status(400).json(response);
+            return;
+        }
+
+        if (methods == null || methods.isEmpty()) {
+            response.put("error", "methods list is empty or null");
+            ctx.status(400).json(response);
+            return;
+        }
+
+        Map<String, Set<String>> callersMap = new LinkedHashMap<>();
+        Set<String> topMethods = new LinkedHashSet<>();
+        Deque<String> queue = new ArrayDeque<>();
+        Set<String> visited = new HashSet<>();
+
+        for (String method : methods) {
+            if (method != null && !method.isBlank()) {
+                queue.add(method);
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            String methodSig = queue.poll();
+            if (!visited.add(methodSig)) {
+                continue;
+            }
+
+            boolean isJVMSignature = SignatureConverter.isJVMSignature(methodSig);
+            String className = SignatureConverter.extractJavaClassFQN(methodSig);
+            String javaMethodSig = isJVMSignature ? SignatureConverter.toJavaMethodSignature(methodSig) : methodSig;
+
+            List<String> callers = instance.getMethodCallers(className, javaMethodSig);
+            if (callers == null) {
+                callers = Collections.emptyList();
+            }
+
+            if (callers.isEmpty()) {
+                topMethods.add(methodSig);
+            }
+
+            callersMap.computeIfAbsent(methodSig, key -> new LinkedHashSet<>()).addAll(callers);
+
+            for (String caller : callers) {
+                if (caller != null && !caller.isBlank()) {
+                    queue.add(caller);
+                }
+            }
+        }
+
+        Map<String, List<String>> callersMapResult = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<String>> entry : callersMap.entrySet()) {
+            callersMapResult.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        response.put("result", callersMapResult);
+        response.put("topMethods", new ArrayList<>(topMethods));
+        ctx.json(response);
     }
 
     public void handleSearchAidlClasses(Context ctx) {

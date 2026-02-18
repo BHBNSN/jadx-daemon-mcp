@@ -183,6 +183,13 @@ def search_string_from_all_classes(
         "searchString": searchString
     }
     response = requests.get(url + "/search_string_from_all_classes", params=query)
+    result = json.loads(response.text).get("result", [])
+    if len(result) > 50:
+        result = result[:50]
+        return {
+            "result": result,
+            "note": "The search result is too much, only return the 50 results"
+        }
     return json.loads(response.text)
 
 @mcp.tool(
@@ -200,6 +207,15 @@ def search_regex_from_all_classes(
         "searchRegex": searchRegex
     }
     response = requests.get(url + "/search_regex_from_all_classes", params=query)
+    result = json.loads(response.text).get("result", [])
+    if len(result) > 50:
+        result = result[:50]
+
+        return {
+            "result": result,
+            "note": "The search result is too much, only return the 50 results"
+        }
+
     return json.loads(response.text)
 
 @mcp.tool(

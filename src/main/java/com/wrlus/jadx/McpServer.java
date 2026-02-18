@@ -686,7 +686,9 @@ public class McpServer {
 
         Map<String, List<String>> callersMapResult = new LinkedHashMap<>();
         for (Map.Entry<String, Set<String>> entry : callersMap.entrySet()) {
-            callersMapResult.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            if(!entry.getValue().isEmpty()) {
+                callersMapResult.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            }
         }
 
         response.put("result", callersMapResult);

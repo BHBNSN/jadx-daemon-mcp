@@ -354,9 +354,11 @@ public class JadxInstance {
         for (Map<String, String> item : criteria) {
             String s = item.get("str");
             String c = item.get("class");
-            if (s != null && c != null) {
+            if (s != null) {
                 searchStrings.add(s);
-                strToClassMap.put(s, c);
+                if (c != null && !c.isEmpty()) {
+                    strToClassMap.put(s, c);
+                }
             }
         }
 
@@ -404,6 +406,11 @@ public class JadxInstance {
             // Check each candidate string against instructions
             for (String candidateStr : candidates) {
                 String targetClass = strToClassMap.get(candidateStr);
+                if (targetClass == null) {
+                    verifiedMatches.add(candidateStr);
+                    continue;
+                }
+
                 int parenIdx = candidateStr.indexOf('(');
                 String beforeParams = parenIdx >= 0 ? candidateStr.substring(0, parenIdx) : candidateStr;
                 int lastDotIdx = beforeParams.lastIndexOf('.');

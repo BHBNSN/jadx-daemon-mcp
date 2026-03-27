@@ -15,6 +15,7 @@ import java.util.*;
 public class McpServer {
 	private static final Logger logger = LoggerFactory.getLogger(McpServer.class);
 	private static final int DEFAULT_MAX_JADX_INSTANCE_COUNT = 1;
+	private static final int MAX_REQUEST_HEADER_SIZE_BYTES = 10 * 1024 * 1024;
 	private Javalin app;
 	private final String host;
 	private final int port;
@@ -44,7 +45,12 @@ public class McpServer {
 				return gson.fromJson(json, targetType);
 			}
 		};
-		app = Javalin.create(config -> config.jsonMapper(gsonMapper)).start(host, port);
+		app = Javalin.create(config -> {
+			config.jsonMapper(gsonMapper);
+			config.jetty.modifyHttpConfiguration(httpConfig ->
+				httpConfig.setRequestHeaderSize(MAX_REQUEST_HEADER_SIZE_BYTES)
+			);
+		}).start(host, port);
 
 		/* Health checker API */
 		app.get("/health", this::handleHealth);
